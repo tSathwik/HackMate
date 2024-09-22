@@ -3,8 +3,56 @@ const app = express();
 const http = require("http");
 const { Server } = require("socket.io");
 const ACTIONS = require("./Actions");
+const cors = require("cors");
+const nodemailer = require("nodemailer");
 
+app.use(cors());
+app.use(express.json());
 const server = http.createServer(app);
+const sendOTP = async (userEmail, userName, roomId) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    port: 587,
+    secure: false,
+    auth: {
+      user: "bvrit25@gmail.com",
+      pass: "sftf qyxo twwd qinb",
+    },
+  });
+
+  const options = {
+    from: "HackMate <bvrit25@gmail.com>",
+    to: userEmail,
+    subject: `Join my room`,
+    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+    <div style="background-color: white;text-align: center;">
+      <img src="https://biz.prlog.org/qualizeal/logo.png" alt="QualiZeal Logo" style="max-width: 150px;">
+    </div>
+    <div style="padding: 20px; background-color: #ffffff;">
+      <h2 style="color: #4285f4; text-align: center; font-size: 20px; margin-bottom: 20px;">Room Invitation</h2>
+      <p style="color: #333;">Hi,</p>
+      <p style="color: #333;">You have been invited to join a collaborative coding room. Click the link below to join:</p>
+      <p style="font-size: 18px; color: #4285f4; text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 5px; width: fit-content; margin: 20px auto;">
+        <a style="text-decoration: none; color: #4285f4;">${roomId}</a>
+      </p>
+      <p style="color: #333;">If you did not expect this invitation, please ignore this email.</p>
+      <p style="color: #333;">Sincerely,<br />QualiZeal Team</p>
+    </div>
+  </div>`,
+  };
+
+  try {
+    await transporter.sendMail(options);
+    console.log("Invitation email sent successfully!");
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+};
+
+app.post("/addUser", (req, res) => {
+  const { userEmail, userName, roomId } = req.body;
+  sendOTP(userEmail, userName, roomId);
+});
 
 const io = new Server(server);
 
@@ -62,4 +110,4 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server is runnint on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

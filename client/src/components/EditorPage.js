@@ -13,9 +13,10 @@ import { toast } from "react-hot-toast";
 
 function EditorPage() {
   const [clients, setClients] = useState([]);
+  const [formData, setFormData] = useState({ userEmail: "", roomId: "" }); // Initialize roomId correctly
   const codeRef = useRef(null);
 
-  const Location = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
 
@@ -34,19 +35,16 @@ function EditorPage() {
 
       socketRef.current.emit(ACTIONS.JOIN, {
         roomId,
-        username: Location.state?.username,
+        username: location.state?.username,
       });
 
-      // Listen for new clients joining the chatroom
       socketRef.current.on(
         ACTIONS.JOINED,
         ({ clients, username, socketId }) => {
-          // this insure that new user connected message do not display to that user itself
-          if (username !== Location.state?.username) {
+          if (username !== location.state?.username) {
             toast.success(`${username} joined the room.`);
           }
           setClients(clients);
-          // also send the code to sync
           socketRef.current.emit(ACTIONS.SYNC_CODE, {
             code: codeRef.current,
             socketId,
@@ -54,59 +52,74 @@ function EditorPage() {
         }
       );
 
-      // listening for disconnected
       socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
         toast.success(`${username} left the room`);
-        setClients((prev) => {
-          return prev.filter((client) => client.socketId !== socketId);
-        });
+        setClients((prev) =>
+          prev.filter((client) => client.socketId !== socketId)
+        );
       });
     };
     init();
 
-    // cleanup
     return () => {
       socketRef.current && socketRef.current.disconnect();
       socketRef.current.off(ACTIONS.JOINED);
       socketRef.current.off(ACTIONS.DISCONNECTED);
+      socketRef.current.off("connect_error");
+      socketRef.current.off("connect_failed");
     };
-  }, []);
+  }, [location.state?.username, navigate, roomId]);
 
-  if (!Location.state) {
+  if (!location.state) {
     return <Navigate to="/" />;
   }
 
   const copyRoomId = async () => {
     try {
       await navigator.clipboard.writeText(roomId);
-      toast.success(`roomIs is copied`);
+      toast.success(`Room ID is copied`);
     } catch (error) {
       console.log(error);
-      toast.error("unable to copy the room Id");
+      toast.error("Unable to copy the room ID");
     }
   };
 
-  const leaveRoom = async () => {
+  const leaveRoom = () => {
     navigate("/");
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const addUser = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("http://localhost:5000/addUser", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...formData, roomId }), // Include roomId in the request body
+      });
+
+      const result = await response.json();
+      console.log("Response from server:", result);
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   return (
     <div className="container-fluid vh-100">
       <div className="row h-100">
-        {/* client panel */}
         <div
           className="col-md-2 bg-dark text-light d-flex flex-column h-100"
           style={{ boxShadow: "2px 0px 4px rgba(0, 0, 0, 0.1)" }}
         >
-          <img
-            src="/images/codecast.png"
-            alt="Logo"
-            className="img-fluid mx-auto"
-            style={{ maxWidth: "150px", marginTop: "-43px" }}
-          />
           <hr style={{ marginTop: "-3rem" }} />
 
-          {/* Client list container */}
           <div className="d-flex flex-column flex-grow-1 overflow-auto">
             <span className="mb-2">Members</span>
             {clients.map((client) => (
@@ -115,22 +128,34 @@ function EditorPage() {
           </div>
 
           <hr />
-          {/* Buttons */}
-          <div className="mt-auto ">
-            <button className="btn btn-success" onClick={copyRoomId}>
-              Copy Room ID
+          <form onSubmit={addUser}>
+            <div className="form-group">
+              <label htmlFor="email">Email:</label>
+              <input
+                type="email"
+                name="userEmail" // Ensure the name matches the state property
+                value={formData.userEmail}
+                onChange={handleInputChange}
+                className="form-control"
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-success mt-2">
+              Add User
             </button>
-            <button
-              className="btn btn-danger mt-2 mb-2 px-3 btn-block"
-              onClick={leaveRoom}
-            >
-              Leave Room
-            </button>
-          </div>
+          </form>
+          <button className="btn btn-success mt-2" onClick={copyRoomId}>
+            Copy Room ID
+          </button>
+          <button
+            className="btn btn-danger mt-2 mb-2 px-3 btn-block"
+            onClick={leaveRoom}
+          >
+            Leave Room
+          </button>
         </div>
 
-        {/* Editor panel */}
-        <div className="col-md-10 text-light d-flex flex-column h-100 ">
+        <div className="col-md-10 text-light d-flex flex-column h-100">
           <Editor
             socketRef={socketRef}
             roomId={roomId}

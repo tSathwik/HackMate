@@ -1,97 +1,75 @@
 import React, { useState } from "react";
-import { v4 as uuid } from "uuid";
 import toast from "react-hot-toast";
+import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 
 function Home() {
   const [roomId, setRoomId] = useState("");
   const [username, setUsername] = useState("");
-
   const navigate = useNavigate();
 
-  const generateRoomId = (e) => {
+  const generateId = (e) => {
     e.preventDefault();
-    const Id = uuid();
+    const Id = uuidv4(); // Generate a unique ID
     setRoomId(Id);
-    toast.success("Room Id is generated");
+    toast.success("Room Id Generated");
   };
 
-  const joinRoom = () => {
+  const handleJoin = () => {
     if (!roomId || !username) {
-      toast.error("Both the field is requried");
+      toast.error("Fields cannot be empty!");
       return;
     }
-
-    // redirect
-    navigate(`/editor/${roomId}`, {
-      state: {
-        username,
-      },
+    navigate(`/home/editor/${roomId}`, {
+      state: { username },
     });
-    toast.success("room is created");
-  };
-
-  // when enter then also join
-  const handleInputEnter = (e) => {
-    if (e.code === "Enter") {
-      joinRoom();
-    }
+    toast.success("Room Created");
   };
 
   return (
-    <div className="container-fluid">
-      <div className="row justify-content-center align-items-center min-vh-100">
-        <div className="col-12 col-md-6">
-          <div className="card shadow-sm p-2 mb-5 bg-secondary rounded">
-            <div className="card-body text-center bg-dark">
-              <img
-                src="/images/codecast.png"
-                alt="Logo"
-                className="img-fluid mx-auto d-block"
-                style={{ maxWidth: "150px" }}
-              />
-              <h4 className="card-title text-light mb-4">Enter the ROOM ID</h4>
-
-              <div className="form-group">
-                <input
-                  type="text"
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  className="form-control mb-2"
-                  placeholder="ROOM ID"
-                  onKeyUp={handleInputEnter}
-                />
-              </div>
-              <div className="form-group">
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="form-control mb-2"
-                  placeholder="USERNAME"
-                  onKeyUp={handleInputEnter}
-                />
-              </div>
-              <button
-                onClick={joinRoom}
-                className="btn btn-success btn-lg btn-block"
-              >
-                JOIN
-              </button>
-              <p className="mt-3 text-light">
-                Don't have a room ID? create{" "}
-                <span
-                  onClick={generateRoomId}
-                  className=" text-success p-2"
-                  style={{ cursor: "pointer" }}
-                >
-                  {" "}
-                  New Room
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-dark">
+      <div
+        className="border border-4 border-white rounded-3 p-4 bg-dark d-flex flex-column align-items-center justify-content-center"
+        style={{
+          height: "50%",
+          width: "28%",
+          maxWidth: "100%",
+        }}
+      >
+        <h3 className="text-white mb-3">Enter Room Id</h3>
+        <input
+          type="text"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+          placeholder="Room Id"
+          className="form-control mb-3 rounded-3"
+          style={{ width: "95%" }}
+        />
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username"
+          className="form-control mb-3 rounded-3"
+          style={{ width: "95%" }}
+        />
+        <button
+          type="button"
+          onClick={handleJoin}
+          className="btn btn-outline-light mb-3"
+        >
+          Join
+        </button>
+        <p className="text-white">
+          Don't have a room Id?{" "}
+          <span
+            className="text-primary"
+            style={{ cursor: "pointer" }}
+            onClick={generateId}
+          >
+            Create Room
+          </span>
+        </p>
       </div>
     </div>
   );
